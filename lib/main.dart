@@ -17,6 +17,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: WeatherScreen(),
     );
   }
@@ -42,7 +43,7 @@ class Weather {
   factory Weather.fromJson(Map<String, dynamic> json){
     return Weather(
       cityName: json['name'],
-      condition: json['weather'][0]['description'],
+      condition: json['weather'][0]['main'],
       temp: json['main']['temp'].toDouble(),
       humidity: json['main']['humidity'],
       windSpeed: json['wind']['speed'].toDouble(),
@@ -53,16 +54,15 @@ class Weather {
 class WeatherService {
   Future<Weather> fetchWeather(String city) async {
     final apiKey = dotenv.env['API_KEY'];
-
-    if (apiKey == null || apiKey.isEmpty){
-      throw Exception('API key is missing. Check .env');
-    }
-
     final response = await http.get(Uri.parse(
       'https://api.openweathermap.org/data/2.5/weather?q=$city&appid=$apiKey&units=metric'
     ));
+
+
     print(response.statusCode);
     print(response.body);
+
+
     if (response.statusCode==200) {
       final jsonData = jsonDecode(response.body);
       return Weather.fromJson(jsonData);
@@ -82,12 +82,27 @@ class _WeatherScreenState extends State<WeatherScreen> {
   String city = "Sacramento";
   final WeatherService _weatherService = WeatherService();
   Weather? weatherData;
+  final List<String> cities = ["Sacramento", "Long Beach", "Los Angeles", "San Diego",
+                                "Palm Springs", "Carson", "Torrance"];
+  IconData weatherIcon = Icons.help;
 
   Future<void> getWeather() async {
     final data = await _weatherService.fetchWeather(city);
+    IconData selectedIcon;
+
+    if (data.condition == 'Clear') {
+      selectedIcon = Icons.sunny;
+    } else if (data.condition == 'Clouds') {
+      selectedIcon = Icons.cloud;
+    } else if (data.condition == 'Rain' || data.condition == 'Drizzle' || data.condition == 'Thunderstorm') {
+      selectedIcon = Icons.water_drop;
+    } else {
+      selectedIcon = Icons.help_outline;
+    }
 
     setState((){
       weatherData = data;
+      weatherIcon = selectedIcon;
     });
   }
 
@@ -95,12 +110,34 @@ class _WeatherScreenState extends State<WeatherScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Fetching Weather Data Example')
+        title: Text('Fetch Weather Data')
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text("Select city: "),
+                SizedBox(width: 20),
+                DropdownButton<String>(
+                    value: city,
+                    items: cities.map((String choice){
+                      return DropdownMenuItem<String>(
+                        value: choice,
+                        child: Text(choice),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState((){
+                        city = newValue!;
+                      });
+                    },
+                  ),
+              ]
+            ),
             ElevatedButton(
               onPressed: getWeather,
               child: const Text('Fetch Data')
@@ -113,6 +150,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                 else
                 Column(
                   children: [
+                    Icon(weatherIcon, size: 180),
                     Text(weatherData!.cityName),
                     Text(weatherData!.condition),
                     Text('${weatherData!.temp} (Celcius)'),
