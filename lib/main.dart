@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+//App setup
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -23,7 +24,7 @@ class MainApp extends StatelessWidget {
   }
 }
 
-//Custom class used to store the relevant data from the JSOn
+//Custom class used to store the relevant data from the JSOn data
 //So I don't have to manually parse the data in UI
 class Weather {
   final String cityName;
@@ -40,6 +41,7 @@ class Weather {
     required this.windSpeed
   });
 
+  //Maps the Json result into the object
   factory Weather.fromJson(Map<String, dynamic> json){
     return Weather(
       cityName: json['name'],
@@ -51,6 +53,7 @@ class Weather {
   }
 }
 
+//Sample code, taken from lab doc and edited slightly
 class WeatherService {
   Future<Weather> fetchWeather(String city) async {
     final apiKey = dotenv.env['API_KEY'];
@@ -64,6 +67,7 @@ class WeatherService {
 
 
     if (response.statusCode==200) {
+      //Decode the data and pass it into the constructor for Weather
       final jsonData = jsonDecode(response.body);
       return Weather.fromJson(jsonData);
     } else {
@@ -79,13 +83,19 @@ class WeatherScreen extends StatefulWidget {
 }
 
 class _WeatherScreenState extends State<WeatherScreen> {
+  //Creating initial city and instance of the WeatherService
   String city = "Sacramento";
   final WeatherService _weatherService = WeatherService();
+
+  //Weather object, will hold the data later
   Weather? weatherData;
+  //List of cities to use in the dropdown menu
   final List<String> cities = ["Sacramento", "Long Beach", "Los Angeles", "San Diego",
-                                "Palm Springs", "Carson", "Torrance"];
+                                "Palm Springs", "Carson", "Torrance", "Anaheim", "San Jose", "Bakersfield",
+                                "Fresno", "London", "Tokyo", "Moscow", "Mexico City"];
   IconData weatherIcon = Icons.help;
 
+  //Function that gets the data from the API call and updates the weather object and Icon to display
   Future<void> getWeather() async {
     final data = await _weatherService.fetchWeather(city);
     IconData selectedIcon;
@@ -109,7 +119,9 @@ class _WeatherScreenState extends State<WeatherScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.indigo,
       appBar: AppBar(
+        backgroundColor: Colors.indigo,
         title: Text('Fetch Weather Data')
       ),
       body: Center(
@@ -122,6 +134,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
               children: [
                 Text("Select city: "),
                 SizedBox(width: 20),
+                //City selection, drop down menu
                 DropdownButton<String>(
                     value: city,
                     items: cities.map((String choice){
@@ -150,6 +163,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                 else
                 Column(
                   children: [
+                    //Display the icon and weather data that was retrieved
                     Icon(weatherIcon, size: 180),
                     Text(weatherData!.cityName),
                     Text(weatherData!.condition),
